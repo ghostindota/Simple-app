@@ -7,6 +7,7 @@ import Like from "./Components/Like";
 import NavBar from "./Components/NavBar";
 import Cart from "./Components/Cart";
 import Form from "./Components/Form/Form";
+import Expense from "./Expense/Components/Expense-tracker";
 
 function App() {
   const [alertVisible, setAlertVisible] = useState(false);
@@ -34,6 +35,7 @@ function App() {
       <NavBar cartItemsCount={cartItems.length}></NavBar>
       <Cart cartItems ={cartItems} onClear={()=>setCartItems([])}></Cart>
       <Form></Form>
+      <Expense></Expense>
     </div>
   );
 }
