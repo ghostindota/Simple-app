@@ -11,7 +11,7 @@ import ExpenseFilter from "./Expense/Components/ExpenseFilter";
 import ExpenseForm from "./Expense/Components/ExpenseForm";
 import ProductList from "./Components/ProductList";
 import ExpenseList from "./Expense/Components/ExpenseList";
-import axios from "axios";
+import axios, { CanceledError } from "axios";
 
 function App() {
   // backend
@@ -19,11 +19,52 @@ function App() {
     name: string;
     id: number;
   }
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [errors, setErrors] = useState("");
+  const [isLoading, setLoading] = useState(false);
+  const originalUsers = [...users];
 
-  axios
-    .get<User[]>("https://jsonplaceholder.typicode.com/users")
-    .then((res) => console.log(res.data[0].name));
+  const addUsers = () => {
+    const newUser = { id: 0, name: "Mohammad" };
+    setUsers([...users, newUser]);
+
+    axios
+      .post("https://jsonplaceholder.typicode.com/users/", newUser)
+      .then(({ data: savedUser }) => setUsers([savedUser, ...users]))
+      .catch((err) => {
+        setUsers(err.message);
+        setUsers(originalUsers);
+      });
+  };
+  const deleteUser = (user: User) => {
+    setUsers(users.filter((u) => u.id !== user.id));
+    axios
+      .delete("https://jsonplaceholder.typicode.com/users/" + user.id)
+      .catch((err) => {
+        setErrors(err.message);
+        setUsers(originalUsers);
+      });
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    axios
+      .get<User[]>("https://jsonplaceholder.typicode.com/users", {
+        signal: controller.signal,
+      })
+      .then((res) => {
+        setUsers(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (err instanceof CanceledError) return;
+        setErrors(err.message);
+        setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, []);
 
   //
   const [alertVisible, setAlertVisible] = useState(false);
@@ -105,6 +146,28 @@ function App() {
         </select>
         <ProductList category={category}></ProductList>
       </div>
+      <br />
+      <br />
+      <br />
+
+      <p className="text-danger">{errors}</p>
+      {isLoading && <div className="spinner-border"></div>}
+      <button className="btn btn-primary mb-3" onClick={() => addUsers()}>
+        Add
+      </button>
+      <ul className="list-group">
+        {users.map((user) => (
+          <li
+            key={user.id}
+            className="list-group-item d-flex justify-content-between"
+          >
+            {user.name}{" "}
+            <button className="btn btn-danger" onClick={() => deleteUser(user)}>
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
     </>
   );
 }
