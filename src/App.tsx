@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Alert from "./Components/Alert";
 import Button from "./Components/Button";
 import ListGroup from "./Components/ListGroup";
@@ -7,12 +7,25 @@ import Like from "./Components/Like";
 import NavBar from "./Components/NavBar";
 import Cart from "./Components/Cart";
 import Form from "./Components/Form/Form";
-import ExpenseList from "./Expense/Components/expenseList";
 import ExpenseFilter from "./Expense/Components/ExpenseFilter";
 import ExpenseForm from "./Expense/Components/ExpenseForm";
-import categories from "./Expense/Components/categories";
+import ProductList from "./Components/ProductList";
+import ExpenseList from "./Expense/Components/ExpenseList";
+import axios from "axios";
 
 function App() {
+  // backend
+  interface User {
+    name: string;
+    id: number;
+  }
+  const [users, setUsers] = useState([]);
+
+  axios
+    .get<User[]>("https://jsonplaceholder.typicode.com/users")
+    .then((res) => console.log(res.data[0].name));
+
+  //
   const [alertVisible, setAlertVisible] = useState(false);
   var items = ["New York", "Texas", "Florida", "Virginia", "DC"];
 
@@ -31,7 +44,8 @@ function App() {
   const visibleExpenses = selectedCategory
     ? expenses.filter((e) => e.category === selectedCategory)
     : expenses;
-
+  const [category, setCategory] = useState("");
+  useEffect(() => {});
   return (
     <>
       <div>
@@ -77,6 +91,19 @@ function App() {
           expenses={visibleExpenses}
           onDelete={(id) => setExpenses(expenses.filter((e) => e.id !== id))}
         ></ExpenseList>
+      </div>
+      <div>
+        <select
+          name=""
+          id=""
+          className="form-select"
+          onChange={(event) => setCategory(event.target.value)}
+        >
+          <option value=""></option>
+          <option value="Clothing"> Clothing</option>
+          <option value="Household">Household</option>
+        </select>
+        <ProductList category={category}></ProductList>
       </div>
     </>
   );
