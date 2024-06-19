@@ -11,14 +11,12 @@ import ExpenseFilter from "./Expense/Components/ExpenseFilter";
 import ExpenseForm from "./Expense/Components/ExpenseForm";
 import ProductList from "./Components/ProductList";
 import ExpenseList from "./Expense/Components/ExpenseList";
-import axios, { CanceledError } from "axios";
+import apiClient, { CanceledError } from "./Services/api-client";
+import userService, { User } from "./Services/user-service";
 
 function App() {
   // backend
-  interface User {
-    name: string;
-    id: number;
-  }
+
   const [users, setUsers] = useState<User[]>([]);
   const [errors, setErrors] = useState("");
   const [isLoading, setLoading] = useState(false);
@@ -28,31 +26,37 @@ function App() {
     const newUser = { id: 0, name: "Mohammad" };
     setUsers([...users, newUser]);
 
-    axios
-      .post("https://jsonplaceholder.typicode.com/users/", newUser)
+    apiClient
+      .post("/users/", newUser)
       .then(({ data: savedUser }) => setUsers([savedUser, ...users]))
-      .catch((err) => {
-        setUsers(err.message);
-        setUsers(originalUsers);
-      });
-  };
-  const deleteUser = (user: User) => {
-    setUsers(users.filter((u) => u.id !== user.id));
-    axios
-      .delete("https://jsonplaceholder.typicode.com/users/" + user.id)
       .catch((err) => {
         setErrors(err.message);
         setUsers(originalUsers);
       });
   };
 
+  const deleteUser = (user: User) => {
+    setUsers(users.filter((u) => u.id !== user.id));
+    apiClient.delete("/users/" + user.id).catch((err) => {
+      setErrors(err.message);
+      setUsers(originalUsers);
+    });
+  };
+
+  const updateUser = (user: User) => {
+    const updatedUser = { ...user, name: user.name + "!" };
+    setUsers(users.map((u) => (u.id === user.id ? updatedUser : u)));
+
+    apiClient.patch("/users/" + user.id, updatedUser).catch((err) => {
+      setErrors(err.message);
+      setUsers(originalUsers);
+    });
+  };
+
   useEffect(() => {
-    const controller = new AbortController();
     setLoading(true);
-    axios
-      .get<User[]>("https://jsonplaceholder.typicode.com/users", {
-        signal: controller.signal,
-      })
+    const { request, cancel } = userService.getAllUsers();
+    request
       .then((res) => {
         setUsers(res.data);
         setLoading(false);
@@ -63,10 +67,9 @@ function App() {
         setLoading(false);
       });
 
-    return () => controller.abort();
+    return () => cancel();
   }, []);
 
-  //
   const [alertVisible, setAlertVisible] = useState(false);
   var items = ["New York", "Texas", "Florida", "Virginia", "DC"];
 
@@ -152,7 +155,7 @@ function App() {
 
       <p className="text-danger">{errors}</p>
       {isLoading && <div className="spinner-border"></div>}
-      <button className="btn btn-primary mb-3" onClick={() => addUsers()}>
+      <button className="btn btn-primary mb-3" onClick={addUsers}>
         Add
       </button>
       <ul className="list-group">
@@ -161,10 +164,22 @@ function App() {
             key={user.id}
             className="list-group-item d-flex justify-content-between"
           >
-            {user.name}{" "}
-            <button className="btn btn-danger" onClick={() => deleteUser(user)}>
-              Delete
-            </button>
+            {user.name}
+            <div>
+              <button
+                className="btn btn-outline-secondary mx-1"
+                onClick={() => updateUser(user)}
+              >
+                Update
+              </button>
+
+              <button
+                className="btn btn-danger"
+                onClick={() => deleteUser(user)}
+              >
+                Delete
+              </button>
+            </div>
           </li>
         ))}
       </ul>
