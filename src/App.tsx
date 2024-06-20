@@ -11,23 +11,22 @@ import ExpenseFilter from "./Expense/Components/ExpenseFilter";
 import ExpenseForm from "./Expense/Components/ExpenseForm";
 import ProductList from "./Components/ProductList";
 import ExpenseList from "./Expense/Components/ExpenseList";
-import apiClient, { CanceledError } from "./Services/api-client";
+import { CanceledError } from "./Services/api-client";
 import userService, { User } from "./Services/user-service";
+import useUsers from "./hooks/useUsers";
 
 function App() {
   // backend
+  const { users, errors, isLoading, setUsers, setErrors } = useUsers();
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [errors, setErrors] = useState("");
-  const [isLoading, setLoading] = useState(false);
   const originalUsers = [...users];
 
   const addUsers = () => {
     const newUser = { id: 0, name: "Mohammad" };
     setUsers([...users, newUser]);
 
-    apiClient
-      .post("/users/", newUser)
+    userService
+      .add(newUser)
       .then(({ data: savedUser }) => setUsers([savedUser, ...users]))
       .catch((err) => {
         setErrors(err.message);
@@ -37,38 +36,21 @@ function App() {
 
   const deleteUser = (user: User) => {
     setUsers(users.filter((u) => u.id !== user.id));
-    apiClient.delete("/users/" + user.id).catch((err) => {
+    userService.delete(user.id).catch((err) => {
       setErrors(err.message);
       setUsers(originalUsers);
     });
   };
 
-  const updateUser = (user: User) => {
+  const updatedUser = (user: User) => {
     const updatedUser = { ...user, name: user.name + "!" };
     setUsers(users.map((u) => (u.id === user.id ? updatedUser : u)));
 
-    apiClient.patch("/users/" + user.id, updatedUser).catch((err) => {
+    userService.updated(updatedUser).catch((err) => {
       setErrors(err.message);
       setUsers(originalUsers);
     });
   };
-
-  useEffect(() => {
-    setLoading(true);
-    const { request, cancel } = userService.getAllUsers();
-    request
-      .then((res) => {
-        setUsers(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (err instanceof CanceledError) return;
-        setErrors(err.message);
-        setLoading(false);
-      });
-
-    return () => cancel();
-  }, []);
 
   const [alertVisible, setAlertVisible] = useState(false);
   var items = ["New York", "Texas", "Florida", "Virginia", "DC"];
@@ -168,7 +150,7 @@ function App() {
             <div>
               <button
                 className="btn btn-outline-secondary mx-1"
-                onClick={() => updateUser(user)}
+                onClick={() => updatedUser(user)}
               >
                 Update
               </button>
